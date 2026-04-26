@@ -146,18 +146,30 @@ def gs_Par(tabEtu,tabPar,cap):
 
 def verif_stap(affectation,tabEtu,tabPar,cap):
     instable = []
-    affctEtu = [0]*len(tabEtu)
+    affctEtu = [None]*len(tabEtu)
 
-    for i in range(len(affectation)):
-        if(len(affectation[i]) > 1):
-            for j in range(len(affectation[i])):
-                temp = affectation[i][j]
-                affctEtu[temp] = i
-        
-        else:
-            affctEtu[affectation[i][0]] = i
+    for p in affectation:
+        for e in affectation[p]:
+            affctEtu[e] = p
 
-    invEtu = inverser(tabEtu)
-    invPar = inverser(tabPar)
+    invEtu, _ = inverser(tabEtu)
+    invPar, _ = inverser(tabPar)
 
+    for e in range(len(tabEtu)):
+        for p in range(len(tabPar)):
+            if(affctEtu[e] is None or affctEtu[e] != p):
+                if(invEtu[e][p]<invEtu[e][affctEtu[e]]):
+                    if(len(affectation[p])<cap[p]):
+                        instable.append((e,p))
+                    else:
+                        pire = affectation[p][0]
+                        for etu in affectation[p]:
+                            if(invPar[p][etu] > invPar[p][pire]):
+                                pire = etu
+                        if(invPar[p][e] < invPar[p][pire]):
+                            instable.append((e,p))
+    return instable
     
+
+#Q7
+

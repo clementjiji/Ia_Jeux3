@@ -2,7 +2,7 @@ import exemple # Pour pouvoir utiliser les methodes de exemple.py
 import projet
 
 
-etu = projet.prefetu(r'C:\Users\clemo\Desktop\Github\Fwdprojet\PrefEtu.txt')
+etu = projet.prefetu(r'C:\Users\clemo\Desktop\Github\Ia_Jeux3\PrefEtu.txt')
 for i in range(len(etu)):
     for j in range(len(etu[i])):
         print(etu[i][j]," ",end="")
@@ -10,7 +10,7 @@ for i in range(len(etu)):
 
 print()
 
-cap,parc = projet.prefpar(r'C:\Users\clemo\Desktop\Github\Fwdprojet\PrefSpe.txt')
+cap,parc = projet.prefpar(r'C:\Users\clemo\Desktop\Github\Ia_Jeux3\PrefSpe.txt')
 for i in range(len(parc)):
     for j in range(len(parc[i])):
         print(parc[i][j]," ",end="")
@@ -35,3 +35,10 @@ for i in range(len(affectation2)):
     for j in range(len(affectation2[i])):
         print(affectation2[i][j]," ",end="")
     print()
+
+print()
+print("---verif_strap---")
+
+print(projet.verif_stap(affectation1, etu, parc, cap))
+print(projet.verif_stap(affectation2, etu, parc, cap))
+
