@@ -234,6 +234,7 @@ def trace_courbe(n, Ltemps_etu, Ltemps_par):
 #Q10
 
 def gs_EtuQ10(tabEtu,tabPar,cap):
+    ite = 0
     etuLibre = [n for n in range(len(tabEtu))]
     parSuivEtu = [0] * len(tabEtu)
     inverse_tabPar,pires = inverser(tabPar)
@@ -243,6 +244,7 @@ def gs_EtuQ10(tabEtu,tabPar,cap):
     pires = {}
 
     while len(etuLibre) > 0:
+        ite += 1
         e = etuLibre.pop()
         p = tabEtu[e][parSuivEtu[e]]
         parSuivEtu[e] += 1
@@ -266,11 +268,10 @@ def gs_EtuQ10(tabEtu,tabPar,cap):
             else:
                 etuLibre.append(e)
 
-    return affectation
+    return affectation,ite
 
-#Q4
-
-def gs_Par(tabEtu,tabPar,cap):
+def gs_ParQ10(tabEtu,tabPar,cap):
+    ite = 0
     n = len(tabEtu)    
     m = len(tabPar)    
     inverse_tabEtu,_ = inverser(tabEtu)
@@ -286,6 +287,7 @@ def gs_Par(tabEtu,tabPar,cap):
             parLibre.append(j)
 
     while len(parLibre) > 0:
+        ite += 1
         p = parLibre.pop()
         if etuSuivPar[p] >= n:
             continue
@@ -310,4 +312,156 @@ def gs_Par(tabEtu,tabPar,cap):
             else:
                 parLibre.append(p)
 
+    return affectation,ite
+
+def question_10(nbT=10):
+    Ltemps_etu = []
+    Ltemps_par = []
+
+    for n in range(200,2001,200):
+        capacite = generer_capacites(n)
+        iteE = 0
+        iteP = 0
+        moy = 0
+        for j in range(nbT):
+            ce = ale_etu(n)
+            cp = ale_par(n)
+
+            z,a = gs_EtuQ10(ce,cp,capacite)
+
+            y,b = gs_ParQ10(ce,cp,capacite)
+
+            iteE += a
+            iteP += b
+
+        moy = iteE /nbT
+        Ltemps_etu.append(moy)
+        moy = iteP/nbT
+        Ltemps_par.append(moy)
+
+    return Ltemps_etu, Ltemps_par
+
+
+#Q11 - Q12 - Q13 - Q14 (PLNE avec Gurobi)
+
+from gurobipy import Model, GRB, quicksum
+
+def borda_etu(tabEtu):
+    n = len(tabEtu)
+    m = len(tabEtu[0])
+    b = [[0]*m for _ in range(n)]
+    for i in range(n):
+        for k in range(m):
+            j = tabEtu[i][k]
+            b[i][j] = m - 1 - k
+    return b
+
+def borda_par(tabPar, n):
+    m = len(tabPar)
+    b = [[0]*m for _ in range(n)]
+    for j in range(m):
+        for k in range(len(tabPar[j])):
+            i = tabPar[j][k]
+            b[i][j] = n - 1 - k
+    return b
+
+def affectation_depuis_x(x, n, m):
+    affectation = {j: [] for j in range(m)}
+    for i in range(n):
+        for j in range(m):
+            if x[i, j].X > 0.5:
+                affectation[j].append(i)
     return affectation
+
+def utilites(affectation, bE, bP):
+    util_etu = []
+    util_par = 0
+    for j in affectation:
+        for e in affectation[j]:
+            util_etu.append(bE[e][j])
+            util_par += bP[e][j]
+    return util_etu, util_par
+
+def question_11(tabEtu, tabPar, cap):
+    n = len(tabEtu)
+    m = len(tabPar)
+    bE = borda_etu(tabEtu)
+
+    model = Model("Q11_maxmin")
+    model.setParam('OutputFlag', 0)
+
+    x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
+    u = model.addVar(vtype=GRB.CONTINUOUS, lb=0, name="u")
+
+    model.setObjective(u, GRB.MAXIMIZE)
+
+    for i in range(n):
+        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
+    for j in range(m):
+        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
+    for i in range(n):
+        model.addConstr(u <= quicksum(bE[i][j] * x[i, j] for j in range(m)))
+
+    model.optimize()
+    return affectation_depuis_x(x, n, m), u.X
+
+def question_12(tabEtu, tabPar, cap):
+    n = len(tabEtu)
+    m = len(tabPar)
+    bE = borda_etu(tabEtu)
+    bP = borda_par(tabPar, n)
+
+    model = Model("Q12_maxsum")
+    model.setParam('OutputFlag', 0)
+
+    x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
+
+    model.setObjective(
+        quicksum((bE[i][j] + bP[i][j]) * x[i, j] for i in range(n) for j in range(m)),
+        GRB.MAXIMIZE
+    )
+
+    for i in range(n):
+        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
+    for j in range(m):
+        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
+
+    model.optimize()
+    return affectation_depuis_x(x, n, m)
+
+def question_13(tabEtu, tabPar, cap, k):
+    n = len(tabEtu)
+    m = len(tabPar)
+    bE = borda_etu(tabEtu)
+    bP = borda_par(tabPar, n)
+
+    model = Model("Q13_topk")
+    model.setParam('OutputFlag', 0)
+
+    x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
+
+    model.setObjective(
+        quicksum((bE[i][j] + bP[i][j]) * x[i, j] for i in range(n) for j in range(m)),
+        GRB.MAXIMIZE
+    )
+
+    for i in range(n):
+        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
+    for j in range(m):
+        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
+    for i in range(n):
+        model.addConstr(quicksum(bE[i][j] * x[i, j] for j in range(m)) >= m - k)
+
+    model.optimize()
+    if model.status != GRB.OPTIMAL:
+        return None
+    return affectation_depuis_x(x, n, m)
+
+def question_14(tabEtu, tabPar, cap):
+    m = len(tabPar)
+    for k in range(1, m + 1):
+        aff = question_13(tabEtu, tabPar, cap, k)
+        if aff is not None:
+            return k, aff
+    return None, None
+

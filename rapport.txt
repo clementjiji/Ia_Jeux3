@@ -1,4 +1,263 @@
-Question 9:
-On observe une croissance linéaire du temps de calcul en fonction de n, 
-ce qui est cohérent avec la complexité théorique en O(n × m). Comme m = 9 est fixe, on obtient bien O(n).
+============================================================
+LU3IN025 - Intelligence Artificielle et Jeux
+TME semaines 1 à 3 - Rapport
+Binôme: ...
+============================================================
 
+
+1. REFORMULATION DU SUJET
+=========================
+
+On s'intéresse au problème d'affectation des étudiants dans les parcours
+du master informatique de Sorbonne Université (m=10 parcours, n étudiants).
+Le projet se décompose en trois parties:
+
+- Partie 1: implémenter l'algorithme de Gale-Shapley adapté au problème
+  des hôpitaux (avec capacités d'accueil), en deux versions: "côté
+  étudiants" et "côté parcours". Vérifier la stabilité des affectations
+  obtenues.
+
+- Partie 2: étudier expérimentalement le temps de calcul et le nombre
+  d'itérations des deux algorithmes en faisant varier le nombre n
+  d'étudiants, et comparer aux complexités théoriques.
+
+- Partie 3: explorer des affectations équitables (max-min des utilités) et
+  efficaces (max somme) à l'aide de PLNE résolus avec Gurobi, puis
+  comparer toutes les solutions selon plusieurs critères.
+
+
+2. STRUCTURES DE DONNÉES ET DESCRIPTION DU CODE
+================================================
+
+2.1 Fichiers
+------------
+- projet.py: implémentation de toutes les fonctions du TME.
+- main.py: script principal qui charge les fichiers de données, exécute
+  les algorithmes et affiche les résultats.
+- exemple.py: fichier d'exemples fourni avec le sujet.
+- PrefEtu.txt, PrefSpe.txt: jeux de tests fournis (n=13, m=10).
+
+2.2 Fonctions principales (projet.py)
+-------------------------------------
+- prefetu(file), prefpar(file): lecture des fichiers de préférences.
+- inverser(mat): construit la matrice inverse des classements.
+- gs_Etu, gs_Par: Gale-Shapley côté étudiants / côté parcours (Q3, Q4).
+- verif_stap: vérifie la stabilité d'une affectation (Q6).
+- ale_etu, ale_par: génération aléatoire des préférences (Q7).
+- generer_capacites: capacités équilibrées dont la somme vaut n.
+- question_8, question_10: mesures expérimentales.
+- gs_EtuQ10, gs_ParQ10: versions instrumentées comptant les itérations.
+- borda_etu, borda_par: calcul des scores de Borda.
+- question_11, question_12, question_13, question_14: PLNE Gurobi.
+
+2.3 Structures de données (réponse à Q2)
+-----------------------------------------
+1) Pile (liste Python avec pop) des étudiants libres -> pop en O(1).
+
+2) Liste parSuivEtu indexée par étudiant: parSuivEtu[i] = numéro du
+   prochain parcours auquel i va proposer -> O(1).
+
+3) Matrice "inverse" du classement des parcours:
+   inverse[numParcours][numEtudiant] = position dans le classement.
+   -> Trouver la position d'un étudiant dans le classement d'un parcours
+      en O(1) (au lieu de O(n) avec une recherche linéaire).
+   Construction en O(n*m), faite une seule fois.
+
+4) Lors de l'inversion, on remplit aussi pires[numParcours] = étudiant
+   le moins préféré actuellement affecté -> O(1) pour trouver le pire.
+
+5) Dictionnaire affectation[numParcours] = liste des étudiants affectés.
+   -> Remplacer un étudiant par un autre en O(c), c = capacité du parcours.
+
+Complexité totale en espace: O(n*m).
+
+
+3. RÉPONSES AUX QUESTIONS
+==========================
+
+Q1 - Lecture des fichiers
+-------------------------
+Implémenté dans prefetu et prefpar (projet.py). Les fonctions retournent
+les matrices CE et CP attendues, ainsi que la liste des capacités.
+
+Q2 - Structures de données
+--------------------------
+Voir section 2.3 ci-dessus.
+
+Q3 - Gale-Shapley côté étudiants
+--------------------------------
+Implémenté dans gs_Etu. Complexité: O(n*m).
+Justification: chaque étudiant fait au plus m propositions; chaque
+opération du coeur de la boucle est en O(1) grâce aux structures choisies
+(sauf mise à jour du pire étudiant, en O(c) où c est la capacité).
+
+Q4 - Gale-Shapley côté parcours
+-------------------------------
+Implémenté dans gs_Par. Adaptation: ce sont les parcours qui proposent
+aux étudiants par ordre de préférence. Mêmes structures (côté symétrique:
+matrice inverse côté étudiants, liste etuSuivPar, etc.).
+Complexité: O(n*m).
+
+Q5 - Application sur les fichiers tests
+---------------------------------------
+Sur PrefEtu.txt / PrefSpe.txt (n=13, m=10), les deux algorithmes
+retournent une affectation stable. Voir affichage dans main.py.
+
+Q6 - Paires instables
+---------------------
+Implémenté dans verif_stap. Vérification: les deux affectations obtenues
+en Q5 ne contiennent aucune paire instable.
+
+Q7 - Génération aléatoire
+-------------------------
+ale_etu(n) et ale_par(n) utilisent random.sample pour générer des
+permutations aléatoires des parcours / étudiants.
+
+Q8 - Mesure du temps de calcul
+------------------------------
+Voir question_8 dans projet.py et la courbe générée par trace_courbe.
+Pour chaque n de 200 à 2000 (pas de 200), 10 tests sont exécutés et la
+moyenne est tracée. Capacités équilibrées sommant à n.
+
+Q9 - Complexité observée (temps)
+--------------------------------
+On observe une croissance linéaire du temps de calcul en fonction de n,
+ce qui est cohérent avec la complexité théorique en O(n*m). Comme m=9
+est fixe, on obtient bien O(n).
+
+Q10 - Nombre d'itérations
+-------------------------
+Le nombre d'itérations croît linéairement avec n pour les deux
+algorithmes, cohérent avec la complexité théorique O(n*m). Cependant,
+GS côté parcours fait environ 8 fois plus d'itérations que GS côté
+étudiants. Cela s'explique par le fait que chaque parcours doit remplir
+environ n/m places, ce qui nécessite presque n propositions par parcours
+dans le pire cas, alors que côté étudiants chaque étudiant trouve
+souvent un parcours dans ses premiers choix.
+
+Q11 - PLNE max-min (équité)
+---------------------------
+Variables:
+- x_{i,j} ∈ {0,1}: 1 si étudiant i affecté au parcours j, 0 sinon.
+- u ∈ R+: utilité minimale parmi les étudiants.
+- b_{i,j} = score de Borda de l'étudiant i pour le parcours j
+          = m - 1 - (position de j dans le classement de i).
+
+PLNE:
+    max  u
+    s.c. somme_{j} x_{i,j} = 1                pour tout i
+         somme_{i} x_{i,j} <= cap_j           pour tout j
+         u <= somme_{j} b_{i,j} * x_{i,j}     pour tout i
+         x_{i,j} ∈ {0,1}, u >= 0
+
+L'astuce du maximin: u est forcée d'être <= à l'utilité de tous les
+étudiants, donc <= au minimum. Comme on maximise u, le solveur pousse
+ce minimum vers le haut -> équité.
+
+Q12 - PLNE max somme (efficacité)
+---------------------------------
+On ajoute le score de Borda côté parcours:
+- b_{i,j}^E = m - 1 - position(j dans classement de i)
+- b_{i,j}^P = n - 1 - position(i dans classement de j)
+
+PLNE:
+    max  somme_{i,j} (b_{i,j}^E + b_{i,j}^P) * x_{i,j}
+    s.c. somme_{j} x_{i,j} = 1                pour tout i
+         somme_{i} x_{i,j} <= cap_j           pour tout j
+         x_{i,j} ∈ {0,1}
+
+Résultats Gurobi sur le jeu de test:
+- Affectation: {0:[7,12], 1:[4], 2:[9], 3:[11], 4:[2,10], 5:[1],
+                6:[8], 7:[6], 8:[0], 9:[3,5]}
+- Utilité moyenne des étudiants: 7.77
+- Utilité minimale des étudiants: 4
+- Utilité totale des parcours: 112
+
+Q13 - PLNE max somme avec contrainte des k premiers choix
+---------------------------------------------------------
+Indication: étudiant a un de ses k premiers choix <=> utilité >= m-k.
+
+PLNE:
+    max  somme_{i,j} (b_{i,j}^E + b_{i,j}^P) * x_{i,j}
+    s.c. somme_{j} x_{i,j} = 1                       pour tout i
+         somme_{i} x_{i,j} <= cap_j                  pour tout j
+         somme_{j} b_{i,j}^E * x_{i,j} >= m - k      pour tout i
+         x_{i,j} ∈ {0,1}
+
+Q14 - Plus petit k pour mariage parfait
+---------------------------------------
+On résout Q13 pour k croissant à partir de 1 jusqu'à obtenir un PLNE
+faisable. Sur le jeu de test:
+- Plus petit k = 5 (pour k < 5, le PLNE est infaisable).
+- Affectation: {0:[7,12], 1:[4], 2:[9], 3:[10], 4:[2,11], 5:[1],
+                6:[8], 7:[6], 8:[0], 9:[3,5]}
+
+Q15 - Comparaison des solutions
+-------------------------------
++----------------------+----------+-----------+----------+----------+
+| Solution             | Stable ? | #instab.  | Util moy | Util min |
++----------------------+----------+-----------+----------+----------+
+| GS côté étudiants    |   Oui    |     0     |   7.85   |    4     |
+| GS côté parcours     |   Oui    |     0     |   7.85   |    4     |
+| Q11 (max-min Borda)  |   Non    |     3     |   8.23   |    5     |
+| Q12 (max somme)      |   Non    |     7     |   7.77   |    4     |
+| Q14 (k=5 premiers)   |   Non    |     5     |   7.85   |    5     |
++----------------------+----------+-----------+----------+----------+
+
+
+4. JEUX D'ESSAIS
+================
+
+4.1 Jeu de test fourni
+----------------------
+- PrefEtu.txt: 13 étudiants, classement des 10 parcours.
+- PrefSpe.txt: 10 parcours, capacités d'accueil et classements des
+  étudiants.
+- Total des capacités = 13 -> mariage parfait possible.
+Utilisé pour Q5, Q6, Q11, Q12, Q14, Q15.
+
+4.2 Jeux générés aléatoirement
+------------------------------
+Pour Q8 et Q10: instances de taille n ∈ {200, 400, ..., 2000} avec m=9
+parcours. Préférences générées par random.sample (permutations
+aléatoires uniformes). Capacités équilibrées sommant à n. 10 répétitions
+par valeur de n pour avoir des moyennes significatives.
+
+
+5. ANALYSE DES PERFORMANCES
+============================
+
+5.1 Temps de calcul (Q8/Q9)
+---------------------------
+Croissance linéaire du temps avec n pour les deux versions de GS.
+GS côté parcours est environ 3 à 5 fois plus lent que GS côté étudiants
+sur la plage testée. Comportement cohérent avec O(n*m), m=9 fixe.
+
+5.2 Nombre d'itérations (Q10)
+-----------------------------
+- GS côté étudiants: ~ n itérations (la plupart des étudiants sont
+  acceptés en première proposition).
+- GS côté parcours: ~ 8n à 9n itérations (chaque parcours doit faire
+  presque n propositions pour remplir ses ~n/m places).
+Les deux courbes restent linéaires en n, conformes à O(n*m).
+
+5.3 Comparaison des stratégies d'affectation (Q15)
+--------------------------------------------------
+- GS (étudiants ou parcours): seules solutions stables, mais utilité
+  moyenne et minimale moyennes (7.85 / 4).
+
+- Q11 (max-min Borda): meilleure équité, meilleure utilité moyenne
+  (8.23) ET meilleure utilité minimale (5). Mais 3 paires instables:
+  c'est le prix de l'équité.
+
+- Q12 (max somme): obtient ici la pire utilité moyenne côté étudiants
+  (7.77) bien qu'elle maximise la somme totale des utilités. Cela
+  s'explique car l'objectif inclut aussi l'utilité des parcours: le
+  solveur peut sacrifier des étudiants. 7 paires instables (le pire).
+
+- Q14 (k=5): bon compromis. Garantit à chaque étudiant un de ses 5
+  premiers choix -> utilité minimale = 5. Utilité moyenne identique à
+  GS (7.85) mais 5 paires instables.
+
+Conclusion: aucune solution ne domine toutes les autres. Le choix dépend
+du compromis souhaité entre stabilité, équité et efficacité globale.
