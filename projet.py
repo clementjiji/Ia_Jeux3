@@ -1,3 +1,7 @@
+import random
+import time
+import matplotlib.pyplot as plt
+
 #Q1
 
 def prefetu(file):
@@ -116,6 +120,8 @@ def gs_Par(tabEtu,tabPar,cap):
 
     while len(parLibre) > 0:
         p = parLibre.pop()
+        if etuSuivPar[p] >= n:
+            continue
         e = tabPar[p][etuSuivPar[p]]
         etuSuivPar[p] += 1
 
@@ -173,3 +179,135 @@ def verif_stap(affectation,tabEtu,tabPar,cap):
 
 #Q7
 
+def ale_etu(n, m=9):
+    return [random.sample(range(m),m) for _ in range(n)]
+
+def ale_par(n,m=9):
+    return [random.sample(range(n),n) for _ in range(m)]
+
+#Q8
+
+def generer_capacites(n, m=9):
+    base = n // m
+    reste = n % m
+    capacites = [base] * m
+    for i in range(reste):
+        capacites[i] += 1
+    return capacites 
+
+def question_8(nbT=10):
+    Ltemps_etu = []
+    Ltemps_par = []
+
+    for n in range(200,2001,200):
+        capacite = generer_capacites(n)
+        temps_etu = 0
+        temps_par = 0
+        for j in range(nbT):
+            ce = ale_etu(n)
+            cp = ale_par(n)
+
+            debut = time.time()
+            gs_Etu(ce,cp,capacite)
+            fin = time.time()
+            temps_etu += fin - debut
+
+            debut = time.time()
+            gs_Par(ce,cp,capacite)
+            fin = time.time()
+            temps_par += fin - debut
+
+        Ltemps_etu.append(temps_etu / nbT)
+        Ltemps_par.append(temps_par / nbT)
+
+    return Ltemps_etu, Ltemps_par
+
+def trace_courbe(n, Ltemps_etu, Ltemps_par):
+    plt.plot(n, Ltemps_etu, label="GS côté étudiants")
+    plt.plot(n, Ltemps_par, label="GS côté parcours")
+    plt.xlabel("n (nombre d'étudiants)")
+    plt.ylabel("Temps moyen (s)")
+    plt.title("Temps de calcul de Gale-Shapley")
+    plt.legend()
+    plt.show()
+
+#Q10
+
+def gs_EtuQ10(tabEtu,tabPar,cap):
+    etuLibre = [n for n in range(len(tabEtu))]
+    parSuivEtu = [0] * len(tabEtu)
+    inverse_tabPar,pires = inverser(tabPar)
+    affectation = {}
+    for j in range(len(tabPar)):
+        affectation[j] = []
+    pires = {}
+
+    while len(etuLibre) > 0:
+        e = etuLibre.pop()
+        p = tabEtu[e][parSuivEtu[e]]
+        parSuivEtu[e] += 1
+
+        if len(affectation[p]) < cap[p]:
+            affectation[p].append(e)
+            if p not in pires:
+                pires[p] = e
+            elif inverse_tabPar[p][e] > inverse_tabPar[p][pires[p]]:
+                pires[p] = e
+
+        else:
+            if inverse_tabPar[p][e] < inverse_tabPar[p][pires[p]]:
+                etuLibre.append(pires[p])
+                affectation[p].remove(pires[p])
+                affectation[p].append(e)
+                pires[p] = affectation[p][0]
+                for etu in affectation[p]:
+                    if inverse_tabPar[p][etu] > inverse_tabPar[p][pires[p]]:
+                        pires[p] = etu
+            else:
+                etuLibre.append(e)
+
+    return affectation
+
+#Q4
+
+def gs_Par(tabEtu,tabPar,cap):
+    n = len(tabEtu)    
+    m = len(tabPar)    
+    inverse_tabEtu,_ = inverser(tabEtu)
+    etuSuivPar = [0] * m
+    affectation = {}
+    for j in range(m):
+        affectation[j] = []
+    affectEtu = [None] * n 
+
+    parLibre = []
+    for j in range(m):
+        if cap[j] > 0:
+            parLibre.append(j)
+
+    while len(parLibre) > 0:
+        p = parLibre.pop()
+        if etuSuivPar[p] >= n:
+            continue
+        e = tabPar[p][etuSuivPar[p]]
+        etuSuivPar[p] += 1
+
+        if affectEtu[e] is None:
+            affectation[p].append(e)
+            affectEtu[e] = p
+            if len(affectation[p]) < cap[p]:
+                parLibre.append(p)
+
+        else:
+            ancien = affectEtu[e]
+            if inverse_tabEtu[e][p] < inverse_tabEtu[e][ancien]:
+                affectation[ancien].remove(e)
+                parLibre.append(ancien)
+                affectation[p].append(e)
+                affectEtu[e] = p
+                if len(affectation[p]) < cap[p]:
+                    parLibre.append(p)
+            else:
+                parLibre.append(p)
+
+    return affectation

@@ -1,0 +1,4 @@
+Question 9:
+On observe une croissance linéaire du temps de calcul en fonction de n, 
+ce qui est cohérent avec la complexité théorique en O(n × m). Comme m = 9 est fixe, on obtient bien O(n).
+

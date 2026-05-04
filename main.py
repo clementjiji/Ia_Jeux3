@@ -2,7 +2,7 @@ import exemple # Pour pouvoir utiliser les methodes de exemple.py
 import projet
 
 
-etu = projet.prefetu(r'C:\Users\clemo\Desktop\Github\Ia_Jeux3\PrefEtu.txt')
+etu = projet.prefetu('/home/clmentjiang/githubPerso/Ia_Jeux3/PrefEtu.txt')
 for i in range(len(etu)):
     for j in range(len(etu[i])):
         print(etu[i][j]," ",end="")
@@ -10,7 +10,7 @@ for i in range(len(etu)):
 
 print()
 
-cap,parc = projet.prefpar(r'C:\Users\clemo\Desktop\Github\Ia_Jeux3\PrefSpe.txt')
+cap,parc = projet.prefpar('/home/clmentjiang/githubPerso/Ia_Jeux3/PrefSpe.txt')
 for i in range(len(parc)):
     for j in range(len(parc[i])):
         print(parc[i][j]," ",end="")
@@ -41,4 +41,12 @@ print("---verif_strap---")
 
 print(projet.verif_stap(affectation1, etu, parc, cap))
 print(projet.verif_stap(affectation2, etu, parc, cap))
+
+print("---Q8---")
+print()
+
+Ltemps_etu, Ltemps_par = projet.question_8(10)
+
+valeurs_n = list(range(200,2001,200))
+projet.trace_courbe(valeurs_n, Ltemps_etu, Ltemps_par)
 
