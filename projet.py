@@ -47,11 +47,11 @@ def prefpar(file):
 
 #Q2
 
-#1) faire une Pile contenant les etudiant libre O(1)
-#2) faire une liste de taille nombre d'etudiant ou l'index i référence l'étudiant i qui contient le numéro du parcour de l'etudiant pour l'iteration O(1)
-#3) dans une fonction inverser la matrice prefpar[numParcours][numPreférence] = numEtudiant => inverse[numParcour][numEtudiant] = numPréférence O(1)
-#4) dans la fonction inverser en profiter pour remplire une liste type plusNull[numParcour] = numEtudiant O(1)
-#5) utilisation d'un dictionnaire qui contient en clé le numéro du parocurs et en valeurs une lite des étudiants qui y sont affectés Dict[numParcours] = [numEtudiant]
+#1) faire une pile contenant les étudiants libres $O(1)$
+#2) faire une liste de taille nombre d'étudiants où l'index i référence l'étudiant i qui contient le numéro du parcours de l'étudiant pour l'itération O(1)
+#3) La fonction inverser permet d'obtenir la matrice prefpar[numParcours][numPreférence] = numEtudiant => inverse[numParcour][numEtudiant] = numPréférence O(1)
+#4) dans la fonction inverser en profiter pour remplir une liste type plusNull[numParcour] = numEtudiant O(1)
+#5) utilisation d'un dictionnaire qui contient en clé le numéro du parcours et en valeurs une liste des étudiants qui y sont affectés Dict[numParcours] = [numEtudiant]
 
 #Q3
 
