@@ -1,6 +1,8 @@
 import random
 import time
 import matplotlib.pyplot as plt
+import gurobipy as gp
+from gurobipy import Model, GRB, quicksum
 
 #Q1
 
@@ -268,8 +270,7 @@ def question_10(nbT=10):
 
 #Q11 - Q12 - Q13 - Q14 (PLNE avec Gurobi)
 
-import gurobipy as gp
-from gurobipy import Model, GRB, quicksum
+
 
 def liste_to_dict(aff_liste, m):
     d = {j: [] for j in range(m)}
