@@ -2,7 +2,7 @@ import exemple # Pour pouvoir utiliser les methodes de exemple.py
 import projet
 
 
-etu = projet.prefetu('/home/clmentjiang/githubPerso/Ia_Jeux3/PrefEtu.txt')
+etu = projet.prefetu('./PrefEtu.txt')
 for i in range(len(etu)):
     for j in range(len(etu[i])):
         print(etu[i][j]," ",end="")
@@ -10,7 +10,7 @@ for i in range(len(etu)):
 
 print()
 
-cap,parc = projet.prefpar('/home/clmentjiang/githubPerso/Ia_Jeux3/PrefSpe.txt')
+cap,parc = projet.prefpar('./PrefSpe.txt')
 for i in range(len(parc)):
     for j in range(len(parc[i])):
         print(parc[i][j]," ",end="")
@@ -21,7 +21,7 @@ print()
 print("---coté étudiant---")
 print()
 
-affectation1 = projet.gs_Etu(etu,parc,cap)
+affectation1,ite1 = projet.gs_Etu(etu,parc,cap)
 for i in range(len(affectation1)):
     for j in range(len(affectation1[i])):
         print(affectation1[i][j]," ",end="")
@@ -30,7 +30,7 @@ for i in range(len(affectation1)):
 print("---coté parcours---")
 print()
 
-affectation2 = projet.gs_Par(etu,parc,cap)
+affectation2,ite2 = projet.gs_Par(etu,parc,cap)
 for i in range(len(affectation2)):
     for j in range(len(affectation2[i])):
         print(affectation2[i][j]," ",end="")
@@ -59,39 +59,23 @@ projet.trace_courbe(valeurs_n,ite_etu,ite_par)
 
 
 print("---Q11 (max-min Borda)---")
-aff11, u_min = projet.question_11(etu, parc, cap)
-print("Affectation:", aff11)
-print("Utilité minimale:", u_min)
 
-print("---Q12 (max somme utilités)---")
-aff12 = projet.question_12(etu, parc, cap)
-print("Affectation:", aff12)
-bE = projet.borda_etu(etu)
-bP = projet.borda_par(parc, len(etu))
-util_etu, util_par = projet.utilites(aff12, bE, bP)
-print("Utilité moyenne (étu):", sum(util_etu)/len(util_etu))
-print("Utilité minimale (étu):", min(util_etu))
-print("Utilité totale parcours:", util_par)
+aff_min, m_e_min, m_s_min, u_min =  projet.resoudre_affectation_max_min(etu, parc, cap)
 
-print("---Q14 (plus petit k pour mariage parfait)---")
-k, aff14 = projet.question_14(etu, parc, cap)
-print(f"Plus petit k = {k}")
-print("Affectation:", aff14)
+aff_max, m_e_max, m_s_max, u_min_max = projet.resoudre_affectation(etu, parc, cap)
 
-print()
-print("---Q15 (comparaison des solutions)---")
-print()
+aff_k, m_e_k, m_s_k, k_min = projet.question_14(etu, parc, cap)
 
-def stats(nom, aff):
-    instables = projet.verif_stap(aff, etu, parc, cap)
-    util_e, _ = projet.utilites(aff, bE, bP)
-    util_moy = sum(util_e) / len(util_e)
-    util_min = min(util_e)
-    stable = "Oui" if len(instables) == 0 else "Non"
-    print(f"{nom:25s} | stable: {stable:3s} | # instables: {len(instables):3d} | util moy: {util_moy:5.2f} | util min: {util_min}")
+m_par = len(parc)
 
-stats("GS coté étudiants", affectation1)
-stats("GS coté parcours", affectation2)
-stats("Q11 (max-min Borda)", aff11)
-stats("Q12 (max somme)", aff12)
-stats(f"Q14 (k={k} premiers)", aff14)
+print("\n\nResoudre Affectation Q11")
+print(f"Utilité moy Etu : {m_e_min}\nUtilité moy Spe : {m_s_min}\n Utilité min : {u_min}\n Affectation : {aff_min}")
+print(f'Mariages instables : {projet.verif_stap(projet.liste_to_dict(aff_min, m_par), etu, parc, cap)}')
+
+print("\n\nResoudre Affectation Q12")
+print(f"Utilité moy Etu : {m_e_max}\nUtilité moy Spe : {m_s_max}\n Utilité min : {u_min_max}\n Affectation : {aff_max}")
+print(f'Mariages instables : {projet.verif_stap(projet.liste_to_dict(aff_max, m_par), etu, parc, cap)}')
+
+print("\n\nResoudre Affectation Q14")
+print(f"Utilité moy Etu : {m_e_k}\nUtilité moy Spe : {m_s_k}\n K min : {u_min}\n Affectation : {aff_k}")
+print(f'Mariages instables : {projet.verif_stap(projet.liste_to_dict(aff_k, m_par), etu, parc, cap)}')

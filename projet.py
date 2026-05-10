@@ -67,6 +67,7 @@ def inverser(mat):
 
 
 def gs_Etu(tabEtu,tabPar,cap):
+    ite = 0
     etuLibre = [n for n in range(len(tabEtu))]
     parSuivEtu = [0] * len(tabEtu)
     inverse_tabPar,pires = inverser(tabPar)
@@ -76,6 +77,7 @@ def gs_Etu(tabEtu,tabPar,cap):
     pires = {}
 
     while len(etuLibre) > 0:
+        ite += 1
         e = etuLibre.pop()
         p = tabEtu[e][parSuivEtu[e]]
         parSuivEtu[e] += 1
@@ -99,11 +101,12 @@ def gs_Etu(tabEtu,tabPar,cap):
             else:
                 etuLibre.append(e)
 
-    return affectation
+    return affectation,ite
 
 #Q4
 
 def gs_Par(tabEtu,tabPar,cap):
+    ite = 0
     n = len(tabEtu)    
     m = len(tabPar)    
     inverse_tabEtu,_ = inverser(tabEtu)
@@ -119,6 +122,7 @@ def gs_Par(tabEtu,tabPar,cap):
             parLibre.append(j)
 
     while len(parLibre) > 0:
+        ite += 1
         p = parLibre.pop()
         if etuSuivPar[p] >= n:
             continue
@@ -143,7 +147,7 @@ def gs_Par(tabEtu,tabPar,cap):
             else:
                 parLibre.append(p)
 
-    return affectation
+    return affectation,ite
 
 
 #La complexité des 2 fonctions est en O(m x n)
@@ -233,86 +237,6 @@ def trace_courbe(n, Ltemps_etu, Ltemps_par):
 
 #Q10
 
-def gs_EtuQ10(tabEtu,tabPar,cap):
-    ite = 0
-    etuLibre = [n for n in range(len(tabEtu))]
-    parSuivEtu = [0] * len(tabEtu)
-    inverse_tabPar,pires = inverser(tabPar)
-    affectation = {}
-    for j in range(len(tabPar)):
-        affectation[j] = []
-    pires = {}
-
-    while len(etuLibre) > 0:
-        ite += 1
-        e = etuLibre.pop()
-        p = tabEtu[e][parSuivEtu[e]]
-        parSuivEtu[e] += 1
-
-        if len(affectation[p]) < cap[p]:
-            affectation[p].append(e)
-            if p not in pires:
-                pires[p] = e
-            elif inverse_tabPar[p][e] > inverse_tabPar[p][pires[p]]:
-                pires[p] = e
-
-        else:
-            if inverse_tabPar[p][e] < inverse_tabPar[p][pires[p]]:
-                etuLibre.append(pires[p])
-                affectation[p].remove(pires[p])
-                affectation[p].append(e)
-                pires[p] = affectation[p][0]
-                for etu in affectation[p]:
-                    if inverse_tabPar[p][etu] > inverse_tabPar[p][pires[p]]:
-                        pires[p] = etu
-            else:
-                etuLibre.append(e)
-
-    return affectation,ite
-
-def gs_ParQ10(tabEtu,tabPar,cap):
-    ite = 0
-    n = len(tabEtu)    
-    m = len(tabPar)    
-    inverse_tabEtu,_ = inverser(tabEtu)
-    etuSuivPar = [0] * m
-    affectation = {}
-    for j in range(m):
-        affectation[j] = []
-    affectEtu = [None] * n 
-
-    parLibre = []
-    for j in range(m):
-        if cap[j] > 0:
-            parLibre.append(j)
-
-    while len(parLibre) > 0:
-        ite += 1
-        p = parLibre.pop()
-        if etuSuivPar[p] >= n:
-            continue
-        e = tabPar[p][etuSuivPar[p]]
-        etuSuivPar[p] += 1
-
-        if affectEtu[e] is None:
-            affectation[p].append(e)
-            affectEtu[e] = p
-            if len(affectation[p]) < cap[p]:
-                parLibre.append(p)
-
-        else:
-            ancien = affectEtu[e]
-            if inverse_tabEtu[e][p] < inverse_tabEtu[e][ancien]:
-                affectation[ancien].remove(e)
-                parLibre.append(ancien)
-                affectation[p].append(e)
-                affectEtu[e] = p
-                if len(affectation[p]) < cap[p]:
-                    parLibre.append(p)
-            else:
-                parLibre.append(p)
-
-    return affectation,ite
 
 def question_10(nbT=10):
     Ltemps_etu = []
@@ -327,9 +251,9 @@ def question_10(nbT=10):
             ce = ale_etu(n)
             cp = ale_par(n)
 
-            z,a = gs_EtuQ10(ce,cp,capacite)
+            z,a = gs_Etu(ce,cp,capacite)
 
-            y,b = gs_ParQ10(ce,cp,capacite)
+            y,b = gs_Par(ce,cp,capacite)
 
             iteE += a
             iteP += b
@@ -344,124 +268,158 @@ def question_10(nbT=10):
 
 #Q11 - Q12 - Q13 - Q14 (PLNE avec Gurobi)
 
+import gurobipy as gp
 from gurobipy import Model, GRB, quicksum
 
-def borda_etu(tabEtu):
-    n = len(tabEtu)
-    m = len(tabEtu[0])
-    b = [[0]*m for _ in range(n)]
-    for i in range(n):
-        for k in range(m):
-            j = tabEtu[i][k]
-            b[i][j] = m - 1 - k
-    return b
+def liste_to_dict(aff_liste, m):
+    d = {j: [] for j in range(m)}
+    for i, j in enumerate(aff_liste):
+        if j != -1:
+            d[j].append(i)
+    return d
 
-def borda_par(tabPar, n):
-    m = len(tabPar)
-    b = [[0]*m for _ in range(n)]
-    for j in range(m):
-        for k in range(len(tabPar[j])):
-            i = tabPar[j][k]
-            b[i][j] = n - 1 - k
-    return b
-
-def affectation_depuis_x(x, n, m):
-    affectation = {j: [] for j in range(m)}
-    for i in range(n):
-        for j in range(m):
-            if x[i, j].X > 0.5:
-                affectation[j].append(i)
-    return affectation
-
-def utilites(affectation, bE, bP):
-    util_etu = []
-    util_par = 0
-    for j in affectation:
-        for e in affectation[j]:
-            util_etu.append(bE[e][j])
-            util_par += bP[e][j]
-    return util_etu, util_par
-
-def question_11(tabEtu, tabPar, cap):
-    n = len(tabEtu)
-    m = len(tabPar)
-    bE = borda_etu(tabEtu)
-
-    model = Model("Q11_maxmin")
+def resoudre_affectation_max_min(pref_etu, pref_spe, capacites, k_limite=None):
+    n = len(pref_etu)
+    m = len(pref_spe)
+    
+    model = gp.Model("Affectation_MaxMin")
     model.setParam('OutputFlag', 0)
-
+    # 1. Variables de décision
     x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
-    u = model.addVar(vtype=GRB.CONTINUOUS, lb=0, name="u")
+    
+    # Nouvelle variable : Utilité minimale parmi les étudiants
+    u_min_var = model.addVar(vtype=GRB.INTEGER, name="u_min")
 
-    model.setObjective(u, GRB.MAXIMIZE)
-
+    # 2. Calcul des utilités (Borda)
+    u_etu = [[0]*m for _ in range(n)]
     for i in range(n):
-        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
+        for rang, j in enumerate(pref_etu[i]):
+            u_etu[i][j] = (m - 1) - rang
+
+    u_spe = [[0]*n for _ in range(m)]
     for j in range(m):
-        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
+        for rang, i in enumerate(pref_spe[j]):
+            u_spe[j][i] = (n - 1) - rang
+
+    # 3. Contraintes standards
+    model.addConstrs((x.sum(i, '*') == 1 for i in range(n)), name="Unicite")
+    model.addConstrs((x.sum('*', j) == capacites[j] for j in range(m)), name="Capacite")
+
+    # 4. Contraintes pour définir l'utilité minimale (Max-Min)
+    # Pour chaque étudiant i, son utilité réelle doit être >= u_min_var
     for i in range(n):
-        model.addConstr(u <= quicksum(bE[i][j] * x[i, j] for j in range(m)))
+        model.addConstr(
+            gp.quicksum(x[i, j] * u_etu[i][j] for j in range(m)) >= u_min_var, 
+            name=f"MinUtil_etu_{i}"
+        )
 
+    # 5. Fonction Objectif : Maximiser l'utilité minimale
+    model.setObjective(u_min_var, GRB.MAXIMIZE)
+
+    # 6. Optimisation
     model.optimize()
-    return affectation_depuis_x(x, n, m), u.X
 
-def question_12(tabEtu, tabPar, cap):
-    n = len(tabEtu)
-    m = len(tabPar)
-    bE = borda_etu(tabEtu)
-    bP = borda_par(tabPar, n)
+    # 7. Récupération des résultats
+    if model.status == GRB.OPTIMAL:
+        affectation = [-1] * n
+        score_total_etu = 0
+        score_total_spe = 0
 
-    model = Model("Q12_maxsum")
+        for i in range(n):
+            for j in range(m):
+                if x[i, j].X > 0.5:
+                    affectation[i] = j
+                    score_total_etu += u_etu[i][j]
+                    score_total_spe += u_spe[j][i]
+        
+        moy_etu = score_total_etu / n
+        moy_spe = score_total_spe / m
+        
+        util_min_etu_calculee = u_min_var.X
+        
+        return affectation, moy_etu, moy_spe, util_min_etu_calculee
+    else:
+        return None, None, None, None
+
+def resoudre_affectation(pref_etu, pref_spe, capacites, k_limite=None):
+    # n = 13 (étudiants), m = 10 (parcours)
+    n = len(pref_etu)
+    m = len(pref_spe)
+    
+    # 1. Création du modèle
+    model = gp.Model("Affectation")
     model.setParam('OutputFlag', 0)
-
-    x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
-
-    model.setObjective(
-        quicksum((bE[i][j] + bP[i][j]) * x[i, j] for i in range(n) for j in range(m)),
-        GRB.MAXIMIZE
-    )
-
-    for i in range(n):
-        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
-    for j in range(m):
-        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
-
-    model.optimize()
-    return affectation_depuis_x(x, n, m)
-
-def question_13(tabEtu, tabPar, cap, k):
-    n = len(tabEtu)
-    m = len(tabPar)
-    bE = borda_etu(tabEtu)
-    bP = borda_par(tabPar, n)
-
-    model = Model("Q13_topk")
-    model.setParam('OutputFlag', 0)
-
+    # 2. Variables de décision : x[i,j] = 1 si l'étudiant i va dans le parcours j
     x = model.addVars(n, m, vtype=GRB.BINARY, name="x")
 
-    model.setObjective(
-        quicksum((bE[i][j] + bP[i][j]) * x[i, j] for i in range(n) for j in range(m)),
-        GRB.MAXIMIZE
-    )
-
+    # 3. Calcul des utilités (Scores de Borda)
+    # Utilité etu[i][j] : quel score l'étudiant i donne au parcours j
+    u_etu = [[0]*m for _ in range(n)]
     for i in range(n):
-        model.addConstr(quicksum(x[i, j] for j in range(m)) == 1)
+        for rang, j in enumerate(pref_etu[i]):
+            u_etu[i][j] = (m - 1) - rang
+            
+    # Utilité spe[j][i] : quel score le parcours j donne à l'étudiant i
+    u_spe = [[0]*n for _ in range(m)]
     for j in range(m):
-        model.addConstr(quicksum(x[i, j] for i in range(n)) <= cap[j])
-    for i in range(n):
-        model.addConstr(quicksum(bE[i][j] * x[i, j] for j in range(m)) >= m - k)
+        for rang, i in enumerate(pref_spe[j]):
+            u_spe[j][i] = (n - 1) - rang
 
+    # 4. Contraintes
+    # Chaque étudiant est affecté à EXACTEMENT un parcours
+    model.addConstrs((x.sum(i, '*') == 1 for i in range(n)), name="Unicite")
+    
+    # Chaque parcours respecte sa capacité maximale
+    model.addConstrs((x.sum('*', j) == capacites[j] for j in range(m)), name="Capacite")
+
+    # Question Q13/Q14 : Contrainte des k-premiers choix
+    # Un étudiant i est dans ses k premiers choix si son utilité >= (m - k)
+    if k_limite is not None:
+        for i in range(n):
+            model.addConstr(gp.quicksum(x[i, j] * u_etu[i][j] for j in range(m)) >= (m - k_limite))
+
+    # 5. Fonction Objectif (Q12 : Maximiser la somme des utilités totales)
+    obj = gp.quicksum(x[i, j] * (u_etu[i][j] + u_spe[j][i]) for i in range(n) for j in range(m))
+    model.setObjective(obj, GRB.MAXIMIZE)
+
+    # 6. Optimisation
     model.optimize()
-    if model.status != GRB.OPTIMAL:
-        return None
-    return affectation_depuis_x(x, n, m)
 
-def question_14(tabEtu, tabPar, cap):
-    m = len(tabPar)
-    for k in range(1, m + 1):
-        aff = question_13(tabEtu, tabPar, cap, k)
+    # 7. Récupération des résultats
+    if model.status == GRB.OPTIMAL:
+        affectation = [-1] * n
+        score_total_etu = 0
+        score_total_spe = 0
+
+        for i in range(n):
+            for j in range(m):
+                if x[i, j].X > 0.5:
+                    affectation[i] = j
+                    score_total_etu += u_etu[i][j]
+                    score_total_spe += u_spe[j][i]
+        
+        moy_etu = score_total_etu / n
+        moy_spe = score_total_spe / m
+
+        # Calcul des statistiques pour Q12 / Q15
+        util_min_etu = min(u_etu[i][affectation[i]] for i in range(n))
+        
+        return affectation, moy_etu, moy_spe, util_min_etu
+    else:
+        return None, None, None, None
+
+def question_14(pref_etu, pref_spe, capacites):
+    print("--- Recherche du plus petit k (Question 14) ---")
+    
+    for k in range(1, 11):
+        print(f"\nEssai pour k = {k}...")
+        aff, moy_etu, moy_spe, k = resoudre_affectation(pref_etu, pref_spe, capacites, k_limite=k)
+        
         if aff is not None:
-            return k, aff
-    return None, None
+            print(f"SUCCÈS : Mariage parfait trouvé pour k = {k} !")
+            return aff, moy_etu, moy_spe, k
+        else:
+            print(f"ÉCHEC : Pas de solution pour k = {k}")
+
+
 
