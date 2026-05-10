@@ -79,3 +79,6 @@ print(f'Mariages instables : {projet.verif_stap(projet.liste_to_dict(aff_max, m_
 print("\n\nResoudre Affectation Q14")
 print(f"Utilité moy Etu : {m_e_k}\nUtilité moy Spe : {m_s_k}\n K min : {u_min}\n Affectation : {aff_k}")
 print(f'Mariages instables : {projet.verif_stap(projet.liste_to_dict(aff_k, m_par), etu, parc, cap)}')
+
+print("\n\n---Q15 (comparaison des solutions)---")
+projet.question_15(etu, parc, cap)

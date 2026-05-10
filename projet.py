@@ -410,11 +410,11 @@ def resoudre_affectation(pref_etu, pref_spe, capacites, k_limite=None):
 
 def question_14(pref_etu, pref_spe, capacites):
     print("--- Recherche du plus petit k (Question 14) ---")
-    
+
     for k in range(1, 11):
         print(f"\nEssai pour k = {k}...")
         aff, moy_etu, moy_spe, k = resoudre_affectation(pref_etu, pref_spe, capacites, k_limite=k)
-        
+
         if aff is not None:
             print(f"SUCCÈS : Mariage parfait trouvé pour k = {k} !")
             return aff, moy_etu, moy_spe, k
@@ -422,4 +422,61 @@ def question_14(pref_etu, pref_spe, capacites):
             print(f"ÉCHEC : Pas de solution pour k = {k}")
 
 
+#Q15
+
+def stats_affectation(aff_dict, pref_etu, pref_spe, cap):
+    n = len(pref_etu)
+    m = len(pref_spe)
+
+    u_etu = [[0]*m for _ in range(n)]
+    for i in range(n):
+        for rang, j in enumerate(pref_etu[i]):
+            u_etu[i][j] = (m - 1) - rang
+    u_spe = [[0]*n for _ in range(m)]
+    for j in range(m):
+        for rang, i in enumerate(pref_spe[j]):
+            u_spe[j][i] = (n - 1) - rang
+
+    util_etu = []
+    somme_spe = 0
+    for j in aff_dict:
+        for e in aff_dict[j]:
+            util_etu.append(u_etu[e][j])
+            somme_spe += u_spe[j][e]
+
+    moy_etu = sum(util_etu) / n if util_etu else 0
+    moy_spe = somme_spe / m
+    util_min = min(util_etu) if util_etu else 0
+    paires_inst = verif_stap(aff_dict, pref_etu, pref_spe, cap)
+    return moy_etu, moy_spe, util_min, paires_inst
+
+
+def question_15(pref_etu, pref_spe, cap):
+    m = len(pref_spe)
+
+    aff_gs_e, _ = gs_Etu(pref_etu, pref_spe, cap)
+    aff_gs_p, _ = gs_Par(pref_etu, pref_spe, cap)
+    aff_q11_l, _, _, _ = resoudre_affectation_max_min(pref_etu, pref_spe, cap)
+    aff_q12_l, _, _, _ = resoudre_affectation(pref_etu, pref_spe, cap)
+    aff_q14_l, _, _, _ = question_14(pref_etu, pref_spe, cap)
+
+    solutions = [
+        ("GS cote etudiants", aff_gs_e),
+        ("GS cote parcours",  aff_gs_p),
+        ("Q11 (max-min)",     liste_to_dict(aff_q11_l, m)),
+        ("Q12 (max-somme)",   liste_to_dict(aff_q12_l, m)),
+        ("Q14 (top-k)",       liste_to_dict(aff_q14_l, m)),
+    ]
+
+    print()
+    print(f"{'Algorithme':<20} | {'Stable':>6} | {'Util.moy etu':>12} | {'Util.moy par':>12} | {'Util.min etu':>12} | {'# inst.':>7}")
+    print("-" * 88)
+    resultats = []
+    for nom, aff in solutions:
+        me, mp, umin, inst = stats_affectation(aff, pref_etu, pref_spe, cap)
+        nb = len(inst)
+        stable = "oui" if nb == 0 else "non"
+        print(f"{nom:<20} | {stable:>6} | {me:>12.3f} | {mp:>12.3f} | {umin:>12.0f} | {nb:>7}")
+        resultats.append((nom, aff, me, mp, umin, inst))
+    return resultats
 
